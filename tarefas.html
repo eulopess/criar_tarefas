@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organizador de Tarefas</title>
+
+  <script type="module">
+    // Importar Firebase Authentication
+    import { getAuth, onAuthStateChanged } from
+      "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    // Configurações do Firebase
+    const configuracaoFirebase = {
+      apiKey: "AIzaSyA0rzfnnPImwNPb4UWt7N1Vam5hFEO86r4",
+      authDomain: "notas-3a5a3.firebaseapp.com",
+      projectId: "notas-3a5a3",
+      storageBucket: "notas-3a5a3.appspot.com",
+      messagingSenderId: "897167666943",
+      appId: "1:897167666943:web:7943369237b969baa8a6ca"
+    };
+    // Inicializar Firebase
+    const app = initializeApp(configuracaoFirebase);
+    const auth = getAuth(app);
+    // Verificar se o usuário está autenticado
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        // Se não estiver autenticado, redirecionar para a página de login
+        window.location.href = "index.html";
+      }
+    });
+  </script>
+
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e0f7fa;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .header {
+      background-color: #00796b;
+      padding: 20px;
+      color: white;
+      font-size: 24px;
+    }
+
+    .task-list,
+    .completed-tasks {
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    .task-item,
+    .completed-item {
+      background-color: #ffffff;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .buttons,
+    .filter {
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 15px 20px;
+      font-size: 16px;
+      background-color: #00796b;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #004d40;
+    }
+
+    .filter select {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #00796b;
+      border-radius: 5px;
+    }
+
+    .delete-btn,
+    .complete-btn {
+      background-color: red;
+      margin-left: 10px;
+    }
+
+    .clear-completed-btn {
+      background-color: #004d40;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">Organizador de Tarefas</div>
+  <div class="filter">
+    <label for="priority-filter">Filtrar por prioridade:</label>
+    <select id="priority-filter" onchange="filterTasks()">
+      <option value="all">Todos</option>
+      <option value="alta">Alta</option>
+      <option value="média">Média</option>
+      <option value="baixa">Baixa</option>
+    </select>
+  </div>
+  <div class="task-list"></div>
+  <div class="completed-tasks">
+    <h3>Tarefas Concluídas</h3>
+  </div>
+  <div class="buttons">
+    <button onclick="addTask()">Adicionar Tarefa</button>
+  </div>
+
+  <div class="header">
+    &copy; 2023 - Todos os direitos reservados
+    <button onclick="logout()" style="float: right; background-color: red; color: white;
+    border: none; padding: 5px 10px; cursor: pointer;">
+      Sair
+    </button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', loadTasks);
+
+    function loadTasks() {
+      const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      const completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
+      displayTasks(tasks);
+      displayCompletedTasks(completedTasks);
+    }
+
+    function displayTasks(tasks) {
+      const taskList = document.querySelector('.task-list');
+      taskList.innerHTML = ''; // Limpa a lista antes de exibir
+      tasks.forEach((task, index) => {
+        const taskItem = document.createElement('div');
+        taskItem.classList.add('task-item');
+        taskItem.innerHTML = `${task.description} - ${capitalize(task.priority)} Prioridade
+          <button class="complete-btn" onclick="completeTask(${index})">Concluir</button>
+          <button class="delete-btn" onclick="deleteTask(${index})">Excluir</button>`;
+        taskList.appendChild(taskItem);
+      });
+    }
+
+    function displayCompletedTasks(completedTasks) {
+      const completedList = document.querySelector('.completed-tasks');
+      completedList.innerHTML = '<h3>Tarefas Concluídas</h3>';
+      completedTasks.forEach((task, index) => {
+        const completedItem = document.createElement('div');
+        completedItem.classList.add('completed-item');
+        completedItem.innerHTML = `${task.description}
+          <button class="clear-completed-btn" onclick="clearCompletedTask(${index})">Excluir</button>`;
+        completedList.appendChild(completedItem);
+      });
+    }
+
+    function addTask() {
+      const description = prompt('Digite a descrição da tarefa:');
+      const priority = prompt('Digite a prioridade da tarefa (alta, média, baixa):').toLowerCase();
+      if (description && (priority === 'alta' || priority === 'média' || priority === 'baixa')) {
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        tasks.push({ description, priority });
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        loadTasks();
+      } else {
+        alert('Preencha os campos corretamente.');
+      }
+    }
+
+    function deleteTask(index) {
+      let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      tasks.splice(index, 1);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      loadTasks();
+    }
+
+    function completeTask(index) {
+      let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
+      const task = tasks.splice(index, 1)[0];
+      completedTasks.push(task);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+      loadTasks();
+    }
+
+    function clearCompletedTask(index) {
+      let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
+      completedTasks.splice(index, 1);
+      localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+      loadTasks();
+    }
+
+    function filterTasks() {
+      const filterValue = document.getElementById('priority-filter').value.toLowerCase();
+      const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      let filteredTasks = tasks;
+      if (filterValue !== 'all') {
+        filteredTasks = tasks.filter(task => task.priority === filterValue);
+      }
+      displayTasks(filteredTasks);
+    }
+
+    function capitalize(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+  </script>
+  <script type="module" src="auth.js"></script>
+</body>
+
+</html>
